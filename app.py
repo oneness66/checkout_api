@@ -1,11 +1,19 @@
-from flask import Flask, render_template, flash, redirect, url_for, session, request, logging
+from flask import Flask, render_template, flash, redirect, url_for, session, request, logging, jsonify, json
 #from data import Articles
 from flask_mysqldb import MySQL
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
+import requests
+from os import environ
+
 
 app = Flask(__name__)
+app.config['DEBUG']
+app.config.from_envvar('APP_SETTINGS')
+app.config['access_key']=environ.get('access_key')
+
+
 
 # Config MySQL
 app.config['MYSQL_HOST'] = 'localhost'
@@ -19,6 +27,8 @@ mysql = MySQL(app)
 #Articles = Articles()
 
 # Index
+
+
 @app.route('/')
 def index():
     return render_template('home.html')
@@ -50,7 +60,7 @@ def articles():
     cur.close()
 
 
-#Single Article
+# Single Article
 @app.route('/article/<string:id>/')
 def article(id):
     # Create cursor
@@ -90,7 +100,8 @@ def register():
         cur = mysql.connection.cursor()
 
         # Execute query
-        cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)", (name, email, username, password))
+        cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)",
+                    (name, email, username, password))
 
         # Commit to DB
         mysql.connection.commit()
@@ -116,7 +127,8 @@ def login():
         cur = mysql.connection.cursor()
 
         # Get user by username
-        result = cur.execute("SELECT * FROM users WHERE username = %s", [username])
+        result = cur.execute(
+            "SELECT * FROM users WHERE username = %s", [username])
 
         if result > 0:
             # Get stored hash
@@ -143,6 +155,8 @@ def login():
     return render_template('login.html')
 
 # Check if user logged in
+
+
 def is_logged_in(f):
     @wraps(f)
     def wrap(*args, **kwargs):
@@ -154,6 +168,8 @@ def is_logged_in(f):
     return wrap
 
 # Logout
+
+
 @app.route('/logout')
 @is_logged_in
 def logout():
@@ -162,6 +178,8 @@ def logout():
     return redirect(url_for('login'))
 
 # Dashboard
+
+
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
@@ -182,32 +200,52 @@ def dashboard():
     cur.close()
 
 # Article Checkout Form Class
+
+
 class ArticleForm(Form):
     phone = StringField('Phone', [validators.Length(min=1, max=200)])
-    
+    country = StringField('Country Code', [validators.Length(min=1, max=200)])
 
 # Add Article Checkout
+
+
 @app.route('/add_article', methods=['GET', 'POST'])
 @is_logged_in
 def add_article():
     form = ArticleForm(request.form)
     if request.method == 'POST' and form.validate():
         phone = form.phone.data
-       
+        country = form.country.data
+        url = "http://apilayer.net/api/validate"
+# Need to read the  access key from the environment using  app.config['access_key']
+        querystring = {"access_key": "81f511599e67f381ac1ff12743ca4753",
+                       "number": phone, "country_code": country, "format": "1"}
 
-        # Create Cursor
-        cur = mysql.connection.cursor()
+        headers = {
+            'cache-control': "no-cache"
+        }
 
-        # Execute
-        cur.execute("INSERT INTO articles(phone,author) VALUES(%s, %s)",(phone,session['username']))
+        response = requests.request(
+            "POST", url, headers=headers, params=querystring)
+        #unicode_to_list = list(response)
+        a = json.loads(response.text)
+        if(a['valid'] == True):
+            # Create Cursor
+            cur = mysql.connection.cursor()
 
-        # Commit to DB
-        mysql.connection.commit()
+            # Execute
+            cur.execute("INSERT INTO articles(phone,author) VALUES(%s, %s)",
+                        (phone, session['username']))
 
-        #Close connection
-        cur.close()
+            # Commit to DB
+            mysql.connection.commit()
 
-        flash('Article Checkout form Created', 'success')
+            # Close connection
+            cur.close()
+
+            flash('Article Checkout form Created', 'success')
+        else:
+            flash('phone number not valid', 'error')
 
         return redirect(url_for('dashboard'))
 
@@ -231,21 +269,19 @@ def edit_article(id):
 
     # Populate article form fields
     form.phone.data = article['phone']
-    
 
     if request.method == 'POST' and form.validate():
         phone = request.form['phone']
-        
-
+        country = request.form['country']
         # Create Cursor
         cur = mysql.connection.cursor()
         app.logger.info(phone)
         # Execute
-        cur.execute ("UPDATE articles SET phone=%s WHERE id=%s",(phone, id))
+        cur.execute("UPDATE articles SET phone=%s,country=%s WHERE id=%s", (phone,country,id))
         # Commit to DB
         mysql.connection.commit()
 
-        #Close connection
+        # Close connection
         cur.close()
 
         flash('Article checkout form Updated', 'success')
@@ -255,6 +291,8 @@ def edit_article(id):
     return render_template('edit_article.html', form=form)
 
 # Delete Article
+
+
 @app.route('/delete_article/<string:id>', methods=['POST'])
 @is_logged_in
 def delete_article(id):
@@ -267,13 +305,14 @@ def delete_article(id):
     # Commit to DB
     mysql.connection.commit()
 
-    #Close connection
+    # Close connection
     cur.close()
 
     flash('Article Check out form Deleted', 'success')
 
     return redirect(url_for('dashboard'))
 
+
 if __name__ == '__main__':
-    app.secret_key='secret123'
+    app.secret_key = 'secret123'
     app.run(debug=True)
