@@ -1,4 +1,4 @@
-#!C:\Python27\python.exe
+#!c:\users\ramprasad.mula\desktop\checkout\checkout_api\venv\scripts\python.exe
 
 # $Id: rst2xetex.py 7038 2011-05-19 09:12:02Z milde $
 # Author: Guenter Milde

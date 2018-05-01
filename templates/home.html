@@ -1,0 +1,12 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+  <div class="jumbotron text-center">
+    <h1>Welcome To Article Checkout App </h1>
+    <p class="lead">This application is built on the Python Flask framework  and  call the API  https://numverify.com/ to check whether the phonenumber entered by a user during checkout process valid or not."</p>
+    {% if session.logged_in == NULL %}
+      <a href="/register" class="btn btn-primary btn-lg">Register</a>
+      <a href="/login" class="btn btn-success btn-lg">Login</a>
+    {% endif %}
+  </div>
+{% endblock %}
