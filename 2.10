@@ -1,2 +1,0 @@
-Requirement already satisfied: Jinja2 in c:\users\ramprasad.mula\desktop\checkout\checkout_api\venv\lib\site-packages (2.8)
-Requirement already satisfied: MarkupSafe in c:\users\ramprasad.mula\desktop\checkout\checkout_api\venv\lib\site-packages (from Jinja2) (0.23)
