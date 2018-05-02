@@ -204,6 +204,7 @@ def dashboard():
 
 class ArticleForm(Form):
     phone = StringField('Phone', [validators.Length(min=1, max=200)])
+    #TODO : with selectfield to select the list of country code's
     country = StringField('Country Code', [validators.Length(min=1, max=200)])
 
 # Add Article Checkout
